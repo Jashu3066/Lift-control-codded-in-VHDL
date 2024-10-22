@@ -1,0 +1,141 @@
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.std_logic_arith.all;
+use ieee.std_logic_unsigned.all;
+	
+entity dhd_project is 
+	port (request,stat,clk,dir0,dir1: in STD_LOGIC;
+		stop,motor,motor_dir: out STD_LOGIC);
+end dhd_project;
+	
+	
+architecture arch of dhd_project is
+attribute enum_encoding: string;
+type State_type is  (Ground, starting_up, going_up,  Top,  starting_down,	
+  				   going_down );
+attribute enum_encoding of State_type: type is
+	"000 " &		
+	"001 " &		
+	"010 " &		
+	"011 " &		
+	"100 " &		
+	"101" ; 		
+	signal State: State_type;
+	begin
+	LIFT : process (clk)
+	begin
+	if rising_edge(clk) then
+	case State is
+	when Ground =>
+		stop <= '0';
+		motor <= '0';
+	if request = '1' then	
+		State <= starting_up;
+	elsif request = '0' then	
+		State <= Ground;
+	end if;
+	when starting_up =>
+		stop <= '1';
+		motor_dir <= '1';
+		
+	if stat = '1' then	
+		State <= going_up;
+		
+	elsif stat = '0' then	
+		State <= starting_up;
+		
+	end if;
+	when going_up =>
+		motor <= '1';
+	if dir1 = '1' then	
+		State <= Top;
+		
+	elsif dir1 = '0' then	
+		State <= going_up;
+		
+	end if;
+	when Top =>
+		stop <= '0';
+		motor <= '0';
+	if request = '1' then	
+		State <= starting_down;
+		
+	elsif request = '0' then	
+		State <= Top;
+	end if;
+	when starting_down =>
+		stop <= '1';
+		motor_dir <= '0';
+	if stat = '1' then	
+		State <= going_down;
+	elsif stat = '0' then	
+		State <= starting_down;
+	end if;
+	when going_down =>
+		motor <= '1';
+	
+	if dir1 = '1' then	
+		State <= Ground;
+	elsif dir1 = '0' then	
+		State <= going_down;
+	end if;
+	when others =>
+	null;
+	end case;
+	end if;
+
+	end process;
+end arch;
+\end{lstlisting}
+\subsection*{Testbench}
+\begin{lstlisting}
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.std_logic_arith.all;
+use ieee.std_logic_unsigned.all;
+
+--empty entity	
+entity dhd_project_tb is 
+end dhd_project_tb;
+	
+
+architecture tb of dhd_project_tb is
+	component dhd_project 
+	port(request,stat,clk,dir0,dir1: in STD_LOGIC;
+		stop,motor,motor_dir: out STD_LOGIC);
+	end component;
+	
+	signal clk: std_logic:= '0';
+	signal request: std_logic:='0';
+	signal stat: std_logic:='0';
+	signal dir0: std_logic:='0';
+	signal dir1: std_logic:='0';
+	
+	signal stop: std_logic;
+	signal motor: std_logic;
+	signal motor_dir: std_logic;
+	
+	begin
+	clk <='0';
+	request <= '0';
+	stat <= '0';
+	dir0 <= '0';
+	dir1 <= '0';
+	wait for 100 ns; 
+	
+	clk <='1';
+	request <= '0';
+	stat <= '0';
+	dir0 <= '0';
+	dir1 <= '0';
+	wait for 100 ns; 
+	
+	clk <='1';
+	request <= '1';
+	stat <= '0';
+	dir0 <= '0';
+	dir1 <= '1';
+	wait for 100 ns; 
+	wait;
+	
+	end tb;
